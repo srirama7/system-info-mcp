@@ -1,0 +1,14 @@
+# If you want to run this mcp in an external file then you need to add this code and save this code in .mcp.json format
+
+
+    {"mcpServers": {
+    "system-info": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "C:/Users/amogh/Downloads/mcp/dist/index.js"
+      ],
+      "env": {}
+    }
+  }
+}
