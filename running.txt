@@ -1,0 +1,622 @@
+ how to run this project give step by step process pls explain of this mcp and explain how this mcp works      
+pls 
+
+● Complete Step-by-Step Guide: Running Your System Info MCP Server
+
+  Let me explain everything from scratch - what MCP is, how it works, and how to run your server!
+
+  ---
+  📚 Part 1: What is MCP (Model Context Protocol)?
+
+  Understanding MCP
+
+  MCP = Model Context Protocol
+
+  Think of it like this:
+  - Claude (AI) = A smart assistant that can answer questions
+  - MCP Server = A tool that extends Claude's abilities
+  - Protocol = A standard way for Claude and servers to talk to each other
+
+  Simple Analogy:
+
+  Claude is like a person with a phone (AI)
+             ↓
+  MCP is like installing apps on that phone (Protocol)
+             ↓
+  Your System Info Server is an app (MCP Server)
+             ↓
+  Now Claude can check your system info by "calling" the app
+
+  Without MCP:
+
+  User: "What's my CPU usage?"
+  Claude: "I'm sorry, I don't have access to your system information."
+
+  With MCP:
+
+  User: "What's my CPU usage?"
+  Claude: [Uses MCP to call your server]
+          [Your server checks system]
+          [Returns: "Ryzen 5 5600H - 25% usage"]
+  Claude: "Your CPU is running at 25% usage on a Ryzen 5 5600H."
+
+  ---
+  🔧 Part 2: How Your MCP Server Works
+
+  Architecture Overview:
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │                     Claude Desktop                          │
+  │  (Claude AI running on your computer)                       │
+  └────────────────────┬────────────────────────────────────────┘
+                       │
+                       │ MCP Protocol (JSON-RPC over stdio)
+                       │
+  ┌────────────────────▼────────────────────────────────────────┐
+  │              Your MCP Server (Node.js)                      │
+  │                                                              │
+  │  ┌──────────────────────────────────────────────────┐     │
+  │  │  index.js - Main Server                          │     │
+  │  │  • Listens for requests from Claude              │     │
+  │  │  • Routes requests to appropriate tools          │     │
+  │  └──────────────┬───────────────────────────────────┘     │
+  │                 │                                           │
+  │  ┌──────────────▼───────────────────────────────────┐     │
+  │  │  Tool Functions (cpu.js, memory.js, etc.)        │     │
+  │  │  • getCPUInfo()                                  │     │
+  │  │  • getMemoryInfo()                               │     │
+  │  │  • getDiskInfo()                                 │     │
+  │  │  • ... (18 tools total)                          │     │
+  │  └──────────────┬───────────────────────────────────┘     │
+  │                 │                                           │
+  │  ┌──────────────▼───────────────────────────────────┐     │
+  │  │  systeminformation library                        │     │
+  │  │  • Reads system data from OS                     │     │
+  │  └──────────────┬───────────────────────────────────┘     │
+  └─────────────────┼───────────────────────────────────────────┘
+                    │
+  ┌─────────────────▼───────────────────────────────────────────┐
+  │         Your Windows Operating System                       │
+  │  • CPU stats, Memory, Disk, Network, Processes, etc.       │
+  └─────────────────────────────────────────────────────────────┘
+
+  Communication Flow (Step by Step):
+
+  1. User asks Claude: "What's my CPU usage?"
+
+  2. Claude decides: "I need to use the get_cpu_info tool"
+
+  3. Claude sends JSON request via stdio:
+     {
+       "method": "tools/call",
+       "params": {
+         "name": "get_cpu_info"
+       }
+     }
+
+  4. Your MCP server receives the request
+
+  5. Server calls getCPUInfo() function
+
+  6. getCPUInfo() calls systeminformation.cpu()
+
+  7. systeminformation reads CPU data from Windows
+
+  8. Data flows back:
+     Windows → systeminformation → getCPUInfo() → Server
+
+  9. Server formats response as JSON:
+     {
+       "content": [{
+         "type": "text",
+         "text": "{\"brand\":\"Ryzen 5 5600H\",\"usage\":25}"
+       }]
+     }
+
+  10. Server sends response to Claude via stdio
+
+  11. Claude receives data and formats it nicely
+
+  12. User sees: "Your CPU is a Ryzen 5 5600H running at 25% usage"
+
+  ---
+  🚀 Part 3: Step-by-Step Running Instructions
+
+  Prerequisites Check
+
+  First, verify you have everything installed:
+
+  # Check Node.js (should be v18+)
+  node --version
+
+  # Check npm
+  npm --version
+
+  # Navigate to your project
+  cd C:\Users\amogh\Downloads\mcp
+
+  ---
+  Method 1: Running Standalone (Testing)
+
+  This is for testing the server manually.
+
+  Step 1: Build the Project
+  npm run build
+
+  What this does:
+  - Compiles TypeScript files (src/*.ts) → JavaScript files (dist/*.js)
+  - Takes ~5-10 seconds
+  - You'll see: "✓ Compiled successfully"
+
+  Step 2: Run the Server
+  node dist/index.js
+
+  What you'll see:
+  MCP System Info Server running on stdio
+  Available tools: 18
+
+  What this means:
+  - Server is running ✅
+  - Waiting for requests on stdin/stdout
+  - To stop: Press Ctrl + C
+
+  Step 3: Test Individual Tools (Optional)
+  node test-server.js
+
+  What you'll see:
+  Testing System Info MCP Server...
+
+  1. Testing get_cpu_info...
+  ✓ CPU Info: Ryzen 5 5600H with Radeon Graphics - 12 cores
+
+  2. Testing get_memory_info...
+  ✓ Memory Info: 7.35 GB total, 0.67 GB free
+
+  3. Testing get_os_info...
+  ✓ OS Info: Microsoft Windows 11 Home Single Language
+
+  ✓ All tests passed! The MCP server is working correctly.
+
+  ---
+  Method 2: Running with Claude Desktop (Production)
+
+  This is the main way to use your MCP server!
+
+  Step 1: Locate Claude Desktop Config File
+
+  Windows Path:
+  %APPDATA%\Claude\claude_desktop_config.json
+
+  Or the full path:
+  C:\Users\amogh\AppData\Roaming\Claude\claude_desktop_config.json
+
+  How to open it:
+
+  Option A - Using File Explorer:
+  1. Press Windows + R
+  2. Type: %APPDATA%\Claude
+  3. Press Enter
+  4. Look for claude_desktop_config.json
+  5. Right-click → Open with → Notepad
+
+  Option B - Using Run command:
+  1. Press Windows + R
+  2. Type: notepad %APPDATA%\Claude\claude_desktop_config.json
+  3. Press Enter
+
+  Option C - Direct path:
+  1. Open File Explorer
+  2. Paste this in address bar: C:\Users\amogh\AppData\Roaming\Claude
+  3. Find claude_desktop_config.json
+
+  ---
+  Step 2: Edit the Configuration File
+
+  If the file is empty or doesn't exist, add this:
+
+  {
+    "mcpServers": {
+      "system-info": {
+        "command": "node",
+        "args": ["C:/Users/amogh/Downloads/mcp/dist/index.js"]
+      }
+    }
+  }
+
+  If the file already has content, add your server to the mcpServers section:
+
+  {
+    "mcpServers": {
+      "existing-server": {
+        "command": "...",
+        "args": ["..."]
+      },
+      "system-info": {
+        "command": "node",
+        "args": ["C:/Users/amogh/Downloads/mcp/dist/index.js"]
+      }
+    }
+  }
+
+  ⚠️ Important Notes:
+  - Use forward slashes (/) not backslashes (\)
+  - Make sure the path is correct
+  - JSON must be valid (use a JSON validator if unsure)
+  - Save the file after editing
+
+  ---
+  Step 3: Restart Claude Desktop
+
+  Complete restart required:
+  1. Close Claude Desktop completely
+    - Right-click taskbar icon → Exit
+    - Or: Alt + F4
+  2. Wait 5 seconds
+  3. Open Claude Desktop again
+
+  Why restart? Claude only reads the config file on startup.
+
+  ---
+  Step 4: Verify the Server is Connected
+
+  In Claude Desktop, look for:
+  - A small "plug" or "connection" icon in the interface
+  - Or check the settings/tools menu
+
+  To test if it's working:
+
+  Type in Claude:
+  Can you check my system information?
+
+  or
+
+  What tools do you have available?
+
+  Claude should mention it has access to system information tools.
+
+  ---
+  Step 5: Use Your MCP Server!
+
+  Now you can ask Claude questions like:
+
+  CPU Monitoring:
+  What's my CPU usage right now?
+  What CPU do I have?
+  How many cores does my CPU have?
+  Is my CPU temperature normal?
+
+  Memory Monitoring:
+  How much RAM do I have?
+  How much memory is being used?
+  Show me memory statistics
+
+  Disk Information:
+  How much disk space do I have?
+  Which drives are almost full?
+  Show disk usage for all drives
+
+  System Information:
+  What operating system am I running?
+  What's my computer's uptime?
+  What's my hostname?
+  Give me complete system specs
+
+  Process Management:
+  What are the top 10 processes by CPU usage?
+  Show me processes using the most memory
+  How many processes are running?
+
+  Network Information:
+  What's my IP address?
+  Show me all network interfaces
+  Am I connected to the internet?
+  What WiFi networks can I see?
+
+  Hardware:
+  What graphics card do I have?
+  What's my screen resolution?
+  What's my battery percentage?
+  Show me hardware information
+
+  ---
+  🔍 Part 4: Understanding What Happens Behind the Scenes
+
+  When You Ask: "What's my CPU usage?"
+
+  ┌─────────────────────────────────────────────────────────┐
+  │ Step 1: You type in Claude Desktop                      │
+  │ "What's my CPU usage?"                                  │
+  └────────────────────┬────────────────────────────────────┘
+                       │
+  ┌────────────────────▼────────────────────────────────────┐
+  │ Step 2: Claude AI analyzes your question                │
+  │ • Realizes it needs system information                  │
+  │ • Sees "system-info" MCP server is available            │
+  │ • Decides to use "get_cpu_info" tool                    │
+  └────────────────────┬────────────────────────────────────┘
+                       │
+  ┌────────────────────▼────────────────────────────────────┐
+  │ Step 3: Claude sends MCP request                        │
+  │                                                          │
+  │ Via stdio (standard input/output):                      │
+  │ {                                                        │
+  │   "jsonrpc": "2.0",                                     │
+  │   "method": "tools/call",                               │
+  │   "params": {                                           │
+  │     "name": "get_cpu_info",                            │
+  │     "arguments": {}                                     │
+  │   }                                                      │
+  │ }                                                        │
+  └────────────────────┬────────────────────────────────────┘
+                       │
+  ┌────────────────────▼────────────────────────────────────┐
+  │ Step 4: Your MCP Server (index.js) receives request    │
+  │                                                          │
+  │ server.setRequestHandler(CallToolRequestSchema, ...)    │
+  │ • Parses the JSON                                       │
+  │ • Sees tool name is "get_cpu_info"                     │
+  │ • Calls getCPUInfo() function                          │
+  └────────────────────┬────────────────────────────────────┘
+                       │
+  ┌────────────────────▼────────────────────────────────────┐
+  │ Step 5: getCPUInfo() in tools/cpu.js executes          │
+  │                                                          │
+  │ import si from 'systeminformation';                     │
+  │                                                          │
+  │ const cpuData = await si.cpu();                         │
+  │ const currentLoad = await si.currentLoad();             │
+  │ const cpuTemp = await si.cpuTemperature();              │
+  └────────────────────┬────────────────────────────────────┘
+                       │
+  ┌────────────────────▼────────────────────────────────────┐
+  │ Step 6: systeminformation library reads Windows        │
+  │                                                          │
+  │ On Windows, it uses:                                    │
+  │ • WMI (Windows Management Instrumentation)              │
+  │ • PowerShell commands                                   │
+  │ • System APIs                                           │
+  │                                                          │
+  │ Gets data like:                                         │
+  │ • CPU model: "AMD Ryzen 5 5600H"                       │
+  │ • Cores: 6 physical, 12 logical                        │
+  │ • Current usage: 23.5%                                  │
+  │ • Temperature: 55°C                                     │
+  └────────────────────┬────────────────────────────────────┘
+                       │
+  ┌────────────────────▼────────────────────────────────────┐
+  │ Step 7: Data flows back to getCPUInfo()                │
+  │                                                          │
+  │ const cpuInfo = {                                       │
+  │   manufacturer: "AMD",                                  │
+  │   brand: "Ryzen 5 5600H",                              │
+  │   cores: 12,                                            │
+  │   usage: 23.5,                                          │
+  │   temperature: 55                                       │
+  │ };                                                       │
+  │                                                          │
+  │ return {                                                 │
+  │   content: [{                                           │
+  │     type: "text",                                       │
+  │     text: JSON.stringify(cpuInfo, null, 2)             │
+  │   }]                                                     │
+  │ };                                                       │
+  └────────────────────┬────────────────────────────────────┘
+                       │
+  ┌────────────────────▼────────────────────────────────────┐
+  │ Step 8: Server sends response back to Claude           │
+  │                                                          │
+  │ Via stdio (standard output):                            │
+  │ {                                                        │
+  │   "content": [{                                         │
+  │     "type": "text",                                     │
+  │     "text": "{                                          │
+  │       \"manufacturer\": \"AMD\",                        │
+  │       \"brand\": \"Ryzen 5 5600H\",                    │
+  │       \"cores\": 12,                                    │
+  │       \"usage\": 23.5,                                  │
+  │       \"temperature\": 55                               │
+  │     }"                                                   │
+  │   }]                                                     │
+  │ }                                                        │
+  └────────────────────┬────────────────────────────────────┘
+                       │
+  ┌────────────────────▼────────────────────────────────────┐
+  │ Step 9: Claude receives and interprets the data        │
+  │ • Parses the JSON response                              │
+  │ • Understands the CPU information                       │
+  │ • Formats it into natural language                      │
+  └────────────────────┬────────────────────────────────────┘
+                       │
+  ┌────────────────────▼────────────────────────────────────┐
+  │ Step 10: You see the response                           │
+  │                                                          │
+  │ "Your CPU is an AMD Ryzen 5 5600H with 12 cores        │
+  │ (6 physical, 12 logical with hyperthreading). It's     │
+  │ currently running at 23.5% usage and the temperature    │
+  │ is 55°C, which is normal."                              │
+  └─────────────────────────────────────────────────────────┘
+
+  Total time: Usually less than 1 second! ⚡
+
+  ---
+  🛠️ Part 5: Troubleshooting Common Issues
+
+  Issue 1: "Cannot find module"
+
+  Error:
+  Error: Cannot find module 'systeminformation'
+
+  Solution:
+  cd C:\Users\amogh\Downloads\mcp
+  npm install
+
+  ---
+  Issue 2: "tsc: command not found"
+
+  Error:
+  'tsc' is not recognized as an internal or external command
+
+  Solution:
+  npm install
+  npm run build
+
+  ---
+  Issue 3: Server doesn't show up in Claude
+
+  Possible causes:
+
+  A) Config file path wrong
+  // ❌ Wrong (backslashes)
+  "args": ["C:\\Users\\amogh\\Downloads\\mcp\\dist\\index.js"]
+
+  // ✅ Correct (forward slashes)
+  "args": ["C:/Users/amogh/Downloads/mcp/dist/index.js"]
+
+  B) Didn't restart Claude Desktop
+  - Must completely close and reopen Claude
+
+  C) JSON syntax error
+  - Use https://jsonlint.com/ to validate your JSON
+
+  D) Node.js not in PATH
+  // Use full path to node.exe
+  {
+    "mcpServers": {
+      "system-info": {
+        "command": "C:/Program Files/nodejs/node.exe",
+        "args": ["C:/Users/amogh/Downloads/mcp/dist/index.js"]
+      }
+    }
+  }
+
+  ---
+  Issue 4: "Permission Denied" Errors
+
+  Some tools require elevated privileges:
+
+  Solution:
+  - Run Claude Desktop as Administrator (right-click → Run as administrator)
+  - Or accept that some features (WiFi scan, temperatures) may not work without admin rights
+
+  ---
+  Issue 5: Server crashes or shows errors
+
+  Check the logs:
+
+  Windows:
+  %APPDATA%\Claude\logs
+
+  Look for errors mentioning your server
+
+  Common fixes:
+  # Rebuild the project
+  cd C:\Users\amogh\Downloads\mcp
+  npm run build
+
+  # Test manually
+  node dist/index.js
+
+  # Run test script
+  node test-server.js
+
+  ---
+  📊 Part 6: Monitoring Your Server
+
+  Check if server is running:
+
+  When manually testing:
+  node dist/index.js
+  # You should see:
+  # MCP System Info Server running on stdio
+  # Available tools: 18
+
+  When running via Claude:
+  - Claude automatically starts/stops the server as needed
+  - You won't see the server process running separately
+
+  View server activity:
+
+  Enable debug logging (if needed):
+
+  Edit dist/index.js and add after line 1:
+  console.error('Debug: Server started');
+
+  Then check Claude's logs:
+  %APPDATA%\Claude\logs
+
+  ---
+  🎯 Part 7: Quick Reference
+
+  File Locations:
+
+  Your Project:
+  C:\Users\amogh\Downloads\mcp\
+
+  Source Code:
+  C:\Users\amogh\Downloads\mcp\src\
+
+  Compiled Code (what runs):
+  C:\Users\amogh\Downloads\mcp\dist\
+
+  Claude Config:
+  C:\Users\amogh\AppData\Roaming\Claude\claude_desktop_config.json
+
+  Claude Logs:
+  C:\Users\amogh\AppData\Roaming\Claude\logs\
+
+  Common Commands:
+
+  # Build the project
+  npm run build
+
+  # Run manually
+  node dist/index.js
+
+  # Test the server
+  node test-server.js
+
+  # Rebuild (after making changes)
+  npm run build
+
+  # Watch mode (auto-rebuild on changes)
+  npm run watch
+
+  Config Template:
+
+  {
+    "mcpServers": {
+      "system-info": {
+        "command": "node",
+        "args": ["C:/Users/amogh/Downloads/mcp/dist/index.js"]
+      }
+    }
+  }
+
+  ---
+  ✅ Final Checklist
+
+  Before using with Claude Desktop:
+
+  - Node.js installed (v18+)
+  - Project built (npm run build)
+  - Test script passes (node test-server.js)
+  - Config file created/edited
+  - Path uses forward slashes (/)
+  - Claude Desktop restarted
+  - Tested with a simple question
+
+  ---
+  🎉 Success Indicators
+
+  You know it's working when:
+
+  ✅ Test script shows: "All tests passed!"
+  ✅ Claude responds to system info questions
+  ✅ Claude mentions having access to system tools
+  ✅ You can ask "What's my CPU?" and get a real answer
+  ✅ No error messages in Claude
+
+  ---
+  You're all set! Your System Info MCP Server is ready to use! 🚀
+
+  Any questions about a specific step? Let me know!
